@@ -1,0 +1,147 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r warning = FALSE, message = FALSE}
+library(tidyverse)
+library(maps)
+library(countrycode)
+library(ggmap)
+library(forcats)
+athletes <- read.csv("athletes.csv")
+countries <- read.csv("countries.csv")
+continents <- read.csv("Countries-Continents.csv")
+
+athletes <- mutate(athletes,
+                   sports_group = ifelse(sport %in% c("rowing", "canoe", "sailing"), "Boat Sport", ifelse(sport %in% c("badminton", "tennis", "table tennis", "volleyball"), "Net Sport", ifelse(sport %in% c("taekwondo", "boxing", "wrestling", "judo", "fencing"), "Battle Sport",
+                                                                                                                                                                                                 ifelse(sport %in% c("modern penthathlon", "golf", "equestrian", "archery", "triathlon", "athletics", "weightlifting", "cycling", "gymnastics", "shooting", "aquatics"), "Self Sport", "Ball Sports")))))
+athletes$dob <- format(as.Date(athletes$dob, format="%m/%d/%y"), "%y")
+athletes <- mutate(athletes,
+                   score = 3*gold + 2*silver + bronze,
+                   dob = as.numeric(dob),
+                   age = ifelse(dob < 17, 17-dob, 117-dob)
+                   )
+
+# athletes = athletes[athletes$score > 0,]
+# 
+athletes <- mutate(athletes,
+                          age = cut(age,breaks =
+                                            c(14, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65)),
+                          age = fct_recode(age,
+                                           "14-20" = "(14,20]",
+                                           "21-25" = "(20,25]",
+                                           "26-30" = "(25,30]",
+                                           "31-35" = "(30,35]",
+                                           "36-40" = "(35,40]",
+                                           "41-45" = "(40,45]",
+                                           "46-50" = "(45,50]",
+                                           "51-55" = "(50,55]",
+                                           "56-60" = "(55,60]",
+                                           "61-65" = "(60,65]")
+                        )
+age_table <-
+  athletes %>%
+  group_by(age) %>%
+  summarize(score = mean(score))
+# 
+# data.lio.atheletes <- read_csv("athletes.csv")
+# data.lio.countries <- read_csv("countries.csv")
+# # csv with continent and country
+# data.continent <- read_csv("Countries-Continents.csv")
+# 
+# # mutate data.continent to add "nationality" col of country codes
+# # North Korea was not recognized by countrycode, so hard coded
+# data.continent <- 
+#   data.continent %>% 
+#   mutate(nationality = ifelse(Country == "Korea, North", "PRK", 
+#                               countrycode(Country, "country.name", "iso3c")))
+# 
+# # mutate data.lio.atheletes to add weighted number of medals of each individual
+# data.lio.atheletes <- 
+#   data.lio.atheletes %>%
+#   mutate(Medals_total = gold + silver + bronze)
+# 
+# # count medals earned by each country
+# data.medal.continent <-
+#   data.lio.atheletes %>%
+#   group_by(nationality) %>%
+#   summarize(gold = sum(gold),
+#             silver = sum(silver),
+#             bronze = sum(bronze))
+# 
+# # merge total medals, countries, and continent
+# data.medal <-
+#   merge(data.medal.continent, data.continent,
+#         by = c("nationality"))
+# 
+# data.medal <- 
+#   data.medal %>%
+#   group_by(Continent) %>%
+#   summarize(gold = sum(gold),
+#             silver = sum(silver),
+#             bronze = sum(bronze))
+# 
+# gold = data.medal[data.medal$gold > 0,]
+# silver = data.medal[data.medal$silver > 0,]
+# bronze = data.medal[data.medal$bronze > 0,]
+
+```
+
+
+```{r, warning = F, message = F}
+# library(gridExtra)
+# gold_plot <- ggplot(data.medal, aes(x=Continent, y = gold)) + geom_bar(stat = "identity") + coord_cartesian() + theme(text = element_text(size = 7)) + labs(title = "Gold")
+# 
+# 
+# silver_plot <- ggplot(data.medal, aes(x=Continent, y=silver)) + geom_bar(stat = "identity") + coord_cartesian() + theme(text = element_text(size = 7)) + labs(title = "Silver")
+# 
+# bronze_plot <- ggplot(data.medal, aes(x=Continent, y=bronze)) + geom_bar(stat = "identity") + coord_cartesian() + theme(text = element_text(size = 7)) + labs(title = "Bronze")
+# 
+# grid.arrange(gold_plot, silver_plot, bronze_plot, ncol = 1)
+lio.theme <-
+  theme_bw() +
+  theme(title= element_text(size = 14, family = "Helvetica",
+                            face="bold"),
+        text = element_text(size = 10, color = "#254EAE",
+                            family = "Helvetica"),
+        axis.text = element_text(color = "#696765"),
+        plot.title = element_text(hjust = .5, size = 14),
+        legend.title = element_text(size = 10, color = "#000000"),
+        legend.text = element_text(size = 8, color = "#000000"),
+        axis.line = element_line(size = 1))
+
+
+```
+
+```{r message = F, warning= FALSE}
+# age_plot <-
+#   ggplot(athletes, aes(x = age, y = score)) + 
+#   geom_point(alpha = .5) +
+#   geom_density2d(bins = 5, size = 0.3, colour="yellow") + 
+#   facet_wrap(~sports_group, nrow = 3) + 
+#   labs(title = "Distribution of Age and Score") 
+# 
+# age_plot
+
+
+athletes = athletes[athletes$score > 0,]
+athletes = na.omit(athletes)
+# ggplot(athletes, aes(x=age, y=score)) + geom_bar(stat = "identity") + coord_cartesian() + theme(text = element_text(size = 7)) + facet_wrap(~sports_group, nrow = 3, scale = "free")
+
+age_plot <- ggplot(athletes, aes(x=age, y=score, fill = sex)) + coord_cartesian() + facet_grid(sex~sports_group, scale = "free_y", margins=TRUE) + stat_summary(fun.y="sum", geom="bar") + 
+  labs(y = "Cumulative Score")+labs(x="Age") + labs(fill= "Sex") + labs(title = "Age vs. Cumulative Score") +
+  labs(subtitle="Cumulative Score: 3 points for gold, 2 points for silver, 1 point for bronze") + scale_fill_manual(values = c("#F90C0C", "#305CEE", "#3FE625")) + lio_theme + theme(axis.text.x = element_text(size = 6, angle = 90, hjust=1))
+
+
+pdf("age plot.pdf")
+age_plot
+dev.off()
+
+age_plot
+
+```
